@@ -7,7 +7,6 @@ import torch.nn as nn
 import torch.nn.functional as F
 import torch.optim as optim
 from torchvision import datasets, transforms
-from torch.utils.tensorboard import SummaryWriter
 import sys
 
 
@@ -67,7 +66,6 @@ def test(args, model, device, test_loader):
 
 
 def main():
-    summary_writer = SummaryWriter('logs', flush_secs=5)
     # Training settings
     parser = argparse.ArgumentParser(
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
@@ -122,12 +120,7 @@ def main():
     for epoch in range(1, args.epochs + 1):
         train(args, model, device, train_loader, optimizer, epoch)
         test(args, model, device, test_loader)
-        train_accuracy = accuracy(logits, labels['train']) * 100
-        summary_writer.add_scalar('accuracy/train', train_accuracy, epoch)
-        summary_writer.add_scalar('loss/train', loss.item(), epoch)
-    
-    summary_writer.close()
-    
+
     if (args.save_model):
         torch.save(model.state_dict(),"mnist_cnn.pt")
 
