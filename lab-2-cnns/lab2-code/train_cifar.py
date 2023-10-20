@@ -13,6 +13,7 @@ from torch.optim.optimizer import Optimizer
 from torch.utils.data import DataLoader
 from torch.utils.tensorboard import SummaryWriter
 from torchvision import transforms
+from torch import optim
 
 import argparse
 from pathlib import Path
@@ -105,10 +106,10 @@ def main(args):
     model = CNN(height=32, width=32, channels=3, class_count=10)
 
     ## TASK 8: Redefine the criterion to be softmax cross entropy
-    criterion = lambda logits, labels: torch.tensor(0)
-
+    # criterion = lambda logits, labels: torch.tensor(0)
+    criterion = nn.CrossEntropyLoss()
     ## TASK 11: Define the optimizer
-    optimizer = None
+    optimizer = optim.SGD(model.parameters(), lr=args.learning_rate)
 
     log_dir = get_summary_writer_log_dir(args)
     print(f"Writing logs to {log_dir}")
@@ -129,9 +130,15 @@ def main(args):
 
     summary_writer.close()
 
+ 
+ 
 
 class CNN(nn.Module):
-    def __init__(self, height: int, width: int, channels: int, class_count: int):
+    def __init__(self,
+                height: int =32,
+                width: int =32,
+                channels: int=3, 
+                class_count: int=10):
         super().__init__()
         self.input_shape = ImageShape(height=height, width=width, channels=channels)
         self.class_count = class_count
@@ -142,22 +149,47 @@ class CNN(nn.Module):
             kernel_size=(5, 5),
             padding=(2, 2),
         )
+        self.conv2 = nn.Conv2d(
+            in_channels=32,  # Fix here,  # Fix here,
+            out_channels=64,
+            kernel_size=(5, 5),
+            padding=(2, 2),
+        )
         self.initialise_layer(self.conv1)
         self.pool1 = nn.MaxPool2d(kernel_size=(2, 2), stride=(2, 2))
         ## TASK 2-1: Define the second convolutional layer and initialise its parameters
+        self.initialise_layer(self.conv2)
         ## TASK 3-1: Define the second pooling layer
+        self.pool2 = nn.MaxPool2d(kernel_size=(2,2),stride=(2,2))
         ## TASK 5-1: Define the first FC layer and initialise its parameters
+        self.fc1 = nn.Linear(4096, 1024)
+        self.initialise_layer(self.fc1)
         ## TASK 6-1: Define the last FC layer and initialise its parameters
+        self.fc2 = nn.Linear(1024, 10)
+        self.initialise_layer(self.fc2)
 
     def forward(self, images: torch.Tensor) -> torch.Tensor:
         x = F.relu(self.conv1(images))
         x = self.pool1(x)
         ## TASK 2-2: Pass x through the second convolutional layer
+        x = self.conv2(x)
+        
+
         ## TASK 3-2: Pass x through the second pooling layer
+        x = self.pool2(x)
         ## TASK 4: Flatten the output of the pooling layer so it is of shape
+        x = torch.flatten(x, start_dim=1, end_dim=-1)  # Flatten each image in the batch
+
+        ## Ensure the shape is [batch_size, 4096]
+        assert x.shape[1] == 4096, f"Expected second dimension to be 4096 but got {x.shape[1]}"
+        
+  
+        
         ##         (batch_size, 4096)
-        ## TASK 5-2: Pass x through the first fully connected layer
+        ## TASK 5-2: Pass x through the first fully connected layer      
+        x = self.fc1(x)
         ## TASK 6-2: Pass x through the last fully connected layer
+        x = self.fc2(x)
         return x
 
     @staticmethod
@@ -208,19 +240,26 @@ class Trainer:
 
                 ## TASK 1: Compute the forward pass of the model, print the output shape
                 ##         and quit the program
-                #output =
+                output = self.model.forward(batch)
+                # print(output.shape)
+                # import sys;sys.exit(1)
 
                 ## TASK 7: Rename `output` to `logits`, remove the output shape printing
+                logits = output
+
                 ##         and get rid of the `import sys; sys.exit(1)`
 
                 ## TASK 9: Compute the loss using self.criterion and
                 ##         store it in a variable called `loss`
-                loss = torch.tensor(0)
+                # loss = torch.tensor(0)
+                loss = self.criterion(logits, labels)
 
                 ## TASK 10: Compute the backward pass
-
+                loss.backward()
                 ## TASK 12: Step the optimizer and then zero out the gradient buffers.
-
+                self.optimizer.step()
+                self.optimizer.zero_grad()
+                 
                 with torch.no_grad():
                     preds = logits.argmax(-1)
                     accuracy = compute_accuracy(labels, preds)

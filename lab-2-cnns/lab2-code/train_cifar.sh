@@ -1,13 +1,13 @@
 #!/usr/bin/env bash
-
 #SBATCH --job-name=lab2
-#SBATCH --partition=teach_gpu
+#SBATCH --partition teach_gpu
 #SBATCH --nodes=1
+#SBATCH --account=coms030144
 #SBATCH -o ./log_%j.out # STDOUT out
 #SBATCH -e ./log_%j.err # STDERR out
 #SBATCH --gres=gpu:1
 #SBATCH --time=0:20:00
-#SBATCH --mem=4GB
+#SBATCH --mem 4GB
 
 # get rid of any modules already loaded
 module purge
